@@ -2,28 +2,32 @@
 
 set -eu
 
-MIMALLOC_VERSION=3.0.1
+MIMALLOC_VERSION=2.2.2
 
 cd /tmp
 
 apk upgrade --no-cache
 
 apk add --no-cache \
+  git \
   alpine-sdk \
-  cargo \
+  rustup \
   clang \
   cmake \
   curl \
   mold \
   ninja-is-really-ninja
 
-find /usr -type f -executable -name "ld" -exec sh -c 'ln -sf /usr/bin/ld.mold {}' \;
+rustup-init -y --default-toolchain nightly --target $(uname -m)-unknown-linux-musl --component rust-src
+
+find /usr /root -type f -executable -name "ld" -exec sh -c 'ln -sf /usr/bin/ld.mold {}' \;
 
 curl -f -L --retry 5 https://github.com/microsoft/mimalloc/archive/refs/tags/v$MIMALLOC_VERSION.tar.gz | tar xz
 
 cd mimalloc-$MIMALLOC_VERSION
 
-patch -p1 < /tmp/mimalloc.diff
+export CFLAGS="-Os -g0 -ffunction-sections -fdata-sections -fvisibility=hidden -fmerge-all-constants"
+export LDFLAGS="-Wl,--gc-sections -Wl,--strip-all"
 
 cmake \
   -Bout \
@@ -39,7 +43,7 @@ cmake \
 
 cmake --build out --target install -- -v
 
-for libc_path in $(find /usr -name libc.a); do
+for libc_path in $(find /usr /root -name libc.a); do
   {
     echo "CREATE libc.a"
     echo "ADDLIB $libc_path"
@@ -52,5 +56,4 @@ done
 
 rm -rf \
   /tmp/build.sh \
-  /tmp/mimalloc.diff \
   /tmp/mimalloc-$MIMALLOC_VERSION
