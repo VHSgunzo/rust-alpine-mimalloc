@@ -2,7 +2,7 @@ FROM alpine:latest
 
 COPY .cargo /root/.cargo
 
-COPY build.sh /tmp
+COPY build.sh mimalloc.diff /tmp
 
 RUN /tmp/build.sh
 

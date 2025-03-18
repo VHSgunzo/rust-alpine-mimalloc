@@ -2,7 +2,7 @@
 
 set -eu
 
-MIMALLOC_VERSION=2.2.2
+MIMALLOC_VERSION=2.1.7
 
 cd /tmp
 
@@ -26,7 +26,9 @@ curl -f -L --retry 5 https://github.com/microsoft/mimalloc/archive/refs/tags/v$M
 
 cd mimalloc-$MIMALLOC_VERSION
 
-export CFLAGS="-Os -g0 -ffunction-sections -fdata-sections -fvisibility=hidden -fmerge-all-constants"
+patch -p1 < /tmp/mimalloc.diff
+
+export CFLAGS="-Os -g0 -ffunction-sections -fdata-sections -fvisibility=hidden -fmerge-all-constants -D__USE_ISOC11"
 export LDFLAGS="-Wl,--gc-sections -Wl,--strip-all"
 
 cmake \
@@ -37,6 +39,7 @@ cmake \
   -DMI_BUILD_OBJECT=OFF \
   -DMI_BUILD_TESTS=OFF \
   -DMI_LIBC_MUSL=ON \
+  -DMI_SECURE=OFF \
   -DMI_SKIP_COLLECT_ON_EXIT=ON \
   -G Ninja \
   .
@@ -56,4 +59,5 @@ done
 
 rm -rf \
   /tmp/build.sh \
+  /tmp/mimalloc.diff \
   /tmp/mimalloc-$MIMALLOC_VERSION
